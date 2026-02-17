@@ -63,8 +63,8 @@ func (ob *OrderBook) PostLimit(ctx context.Context, user string, orderID uuid.UU
 func (ob *OrderBook) FillsForUser(ctx context.Context, user string) []UserFill {
 	ob.obs.LogInfo(ctx, "orderbook.fills.query user=%s", user)
 
-	ob.mu.Lock()
-	defer ob.mu.Unlock()
+	ob.mu.RLock()
+	defer ob.mu.RUnlock()
 
 	fills := make([]UserFill, len(ob.fillsByUser[user]))
 	copy(fills, ob.fillsByUser[user])

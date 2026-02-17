@@ -42,13 +42,6 @@ func temporaryUnavailable(c *fiber.Ctx, err error) error {
 	})
 }
 
-func conflict(c *fiber.Ctx, required int64, applied int64) error {
-	return jsonResponse(c, fiber.StatusConflict, fiber.Map{
-		"error":    "read not yet consistent",
-		"required": required,
-		"applied":  applied,
-	})
-}
 
 func success(c *fiber.Ctx) error {
 	return jsonResponse(c, fiber.StatusOK, fiber.Map{

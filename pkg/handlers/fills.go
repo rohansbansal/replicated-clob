@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"errors"
 
 	"replicated-clob/schemas"
@@ -17,7 +16,6 @@ func (h *Handler) GetFillsForUser(c *fiber.Ctx) error {
 	}
 
 	ctx := c.UserContext()
-	ctx = context.WithValue(ctx, "user", userID)
 	h.obs.LogInfo(ctx, "fills.query: user=%s", userID)
 
 	if err := h.ensureReplicaReadFreshness(ctx); err != nil {

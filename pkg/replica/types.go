@@ -1,26 +1,11 @@
 package replica
 
-import (
-	"fmt"
-	"strings"
-)
-
 type NodeRole string
 
 const (
 	NodeRolePrimary   NodeRole = "primary"
 	NodeRoleSecondary NodeRole = "secondary"
 )
-
-func ParseNodeRole(raw string) (NodeRole, error) {
-	r := NodeRole(strings.ToLower(raw))
-	switch r {
-	case NodeRolePrimary, NodeRoleSecondary:
-		return r, nil
-	default:
-		return "", fmt.Errorf("invalid mode %q, expected primary or secondary", raw)
-	}
-}
 
 func (r NodeRole) IsPrimary() bool {
 	return r == NodeRolePrimary
@@ -64,3 +49,8 @@ type ReplicaStateResponse struct {
 type ReplicaSyncResponse struct {
 	Entries []ReplicationEntry `json:"entries"`
 }
+
+const (
+	RequestIDHeader     = "X-Request-ID"
+	RequestIDContextKey = "reqId"
+)

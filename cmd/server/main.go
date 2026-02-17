@@ -33,14 +33,10 @@ func main() {
 		panic("missing required --port (or -p)")
 	}
 
-	parsedMode, err := replica.ParseNodeRole(*mode)
-	if err != nil {
-		panic(err)
-	}
+	parsedMode := replica.NodeRole(*mode)
 	obs := obs.New()
 	ctx, cancel := context.WithCancel(context.Background())
 
-	replicaCoordinator := replica.NewCoordinator(parsedMode)
 	peerURLs := []string{}
 	if trimmedPeers := strings.TrimSpace(*peers); trimmedPeers != "" {
 		for _, value := range strings.Split(trimmedPeers, ",") {
@@ -51,15 +47,12 @@ func main() {
 			}
 		}
 	}
-	replicaCoordinator.SetPeers(peerURLs)
-	replicaCoordinator.SetPrimary(*primary)
-	configuredPeers := replicaCoordinator.Peers()
-	replicaRole := string(replicaCoordinator.Role())
+	replicaCoordinator := replica.NewCoordinator(parsedMode, peerURLs, *primary)
 	obs.LogNotice(
 		ctx,
 		"replica node startup: role=%s peers=%v required_peer_acks=%d can_accept_write=%t primary=%s",
-		replicaRole,
-		configuredPeers,
+		replicaCoordinator.Role(),
+		replicaCoordinator.Peers(),
 		replicaCoordinator.RequiredPeerAcks(),
 		replicaCoordinator.CanAcceptWrite(),
 		replicaCoordinator.Primary(),
@@ -67,7 +60,7 @@ func main() {
 	if !replicaCoordinator.CanAcceptWrite() && replicaCoordinator.Primary() == "" {
 		obs.LogAlert(ctx, "secondary started without primary; writes will fail until primary is configured")
 	}
-	if replicaCoordinator.Role() == replica.NodeRolePrimary && len(configuredPeers) == 0 {
+	if replicaCoordinator.Role() == replica.NodeRolePrimary && len(replicaCoordinator.Peers()) == 0 {
 		obs.LogInfo(ctx, "primary started with no peers configured; replication quorums will be single-node mode")
 	}
 

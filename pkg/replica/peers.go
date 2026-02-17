@@ -1,8 +1,6 @@
 package replica
 
-import (
-	"strings"
-)
+import "strings"
 
 func (c *Coordinator) SetPeers(peers []string) {
 	c.mu.Lock()

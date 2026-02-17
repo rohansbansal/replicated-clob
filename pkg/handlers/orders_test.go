@@ -16,7 +16,8 @@ import (
 
 func newTestHandlerApp() (*fiber.App, *orderbook.OrderBook, *obs.Client) {
 	obsClient := &obs.Client{}
-	rep := replica.NewCoordinator(replica.NodeRolePrimary)
+	// test without replicating
+	rep := replica.NewCoordinator(replica.NodeRolePrimary, []string{}, "test-cluster")
 	h := New(obsClient, rep)
 	app := fiber.New()
 	app.Post("/order/post", h.PostOrder)

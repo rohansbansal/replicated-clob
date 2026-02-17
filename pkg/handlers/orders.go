@@ -16,10 +16,6 @@ func (h *Handler) PostOrder(c *fiber.Ctx) error {
 	var req schemas.PostLimitRequest
 	ctx := c.UserContext()
 
-	if !h.replica.CanAcceptWrite() {
-		return temporaryRedirect(c, h.replica.Primary())
-	}
-
 	if err := c.BodyParser(&req); err != nil {
 		h.obs.LogErr(ctx, "order.post: invalid request body (user=%s is_bid=%v)", req.User, req.IsBid)
 		return badRequest(c, errors.New("invalid request body"))
@@ -35,8 +31,8 @@ func (h *Handler) PostOrder(c *fiber.Ctx) error {
 
 	h.obs.LogInfo(ctx, "order.post: user=%s is_bid=%v price=%d amount=%d", req.User, req.IsBid, req.PriceLevel, req.Amount)
 
-	h.replica.LockReplicationLog()
-	defer h.replica.UnlockReplicationLog()
+	h.replica.LockWritePipeline()
+	defer h.replica.UnlockWritePipeline()
 
 	orderId := uuid.New()
 	replicaEntry := replica.ReplicationEntry{
@@ -50,29 +46,32 @@ func (h *Handler) PostOrder(c *fiber.Ctx) error {
 		IsBid:      req.IsBid,
 	}
 
-	// Replication is applied first so primary and secondaries move in lockstep.
-	if err := h.replicateEntries(ctx, []replica.ReplicationEntry{replicaEntry}); err != nil {
+	// Prepare on primary and quorum peers before commit.
+	if err := h.replication.PrepareEntry(ctx, replicaEntry); err != nil {
 		h.obs.LogAlert(ctx, "order.post replication failed: seq=%d err=%v", replicaEntry.Seq, err)
 		h.replica.RevertSequence(replicaEntry.Seq)
 		return temporaryUnavailable(c, err)
 	}
+
+	if err := h.replication.CommitEntry(ctx, replicaEntry); err != nil {
+		h.obs.LogAlert(ctx, "order.post commit replication failed: seq=%d err=%v", replicaEntry.Seq, err)
+		h.replica.RevertSequence(replicaEntry.Seq)
+		return temporaryUnavailable(c, err)
+	}
+
 	resp, err := h.applyPostReplication(ctx, replicaEntry)
 	if err != nil {
 		h.obs.LogErr(ctx, "order.post commit failed: seq=%d err=%v", replicaEntry.Seq, err)
 		return internalServerError(c)
 	}
 
-	h.obs.LogInfo(ctx, "order.post done: user=%s size_matched=%d fills=%d", req.User, matchedSize(resp.Fills), len(resp.Fills))
+	h.obs.LogInfo(ctx, "order.post done: user=%s fills=%d", req.User, len(resp.Fills))
 	return jsonResponse(c, fiber.StatusOK, resp)
 }
 
 func (h *Handler) CancelOrder(c *fiber.Ctx) error {
 	var req schemas.CancelLimitRequest
 	ctx := c.UserContext()
-
-	if !h.replica.CanAcceptWrite() {
-		return temporaryRedirect(c, h.replica.Primary())
-	}
 	if err := c.BodyParser(&req); err != nil {
 		h.obs.LogErr(ctx, "order.cancel: invalid request body")
 		return badRequest(c, errors.New("invalid request body"))
@@ -91,10 +90,9 @@ func (h *Handler) CancelOrder(c *fiber.Ctx) error {
 		return notFound(c, errors.New("order not found"))
 	}
 
-	h.replica.LockReplicationLog()
-	defer h.replica.UnlockReplicationLog()
+	h.replica.LockWritePipeline()
+	defer h.replica.UnlockWritePipeline()
 
-	ctx = context.WithValue(ctx, "order.id", req.OrderID)
 	h.obs.LogInfo(ctx, "order.cancel: order_id=%s", req.OrderID)
 
 	replicaEntry := replica.ReplicationEntry{
@@ -105,22 +103,20 @@ func (h *Handler) CancelOrder(c *fiber.Ctx) error {
 	}
 
 	// Cancel validation happens before the local state change, and side effects are committed after quorum replication.
-	if err := h.replicateEntries(ctx, []replica.ReplicationEntry{replicaEntry}); err != nil {
+	if err := h.replication.PrepareEntry(ctx, replicaEntry); err != nil {
 		h.obs.LogAlert(ctx, "order.cancel replication failed: seq=%d err=%v", replicaEntry.Seq, err)
+		h.replica.RevertSequence(replicaEntry.Seq)
+		return temporaryUnavailable(c, err)
+	}
+	if err := h.replication.CommitEntry(ctx, replicaEntry); err != nil {
+		h.obs.LogAlert(ctx, "order.cancel commit replication failed: seq=%d err=%v", replicaEntry.Seq, err)
 		h.replica.RevertSequence(replicaEntry.Seq)
 		return temporaryUnavailable(c, err)
 	}
 	resp, err := h.applyCancelReplication(ctx, replicaEntry)
 	if err != nil {
 		h.obs.LogErr(ctx, "order.cancel commit failed: order_id=%s err=%v", req.OrderID, err)
-		switch err.Error() {
-		case "order not found":
-			return notFound(c, err)
-		case "invalid order ID":
-			return badRequest(c, err)
-		default:
-			return internalServerError(c)
-		}
+		return internalServerError(c)
 	}
 
 	h.obs.LogInfo(ctx, "order.cancel done: order_id=%s size_cancelled=%d", req.OrderID, resp.SizeCancelled)
@@ -162,18 +158,21 @@ func (h *Handler) GetOpenOrders(c *fiber.Ctx) error {
 	})
 }
 
-func matchedSize(matches []schemas.PostLimitMatch) int64 {
-	var total int64
-	for _, match := range matches {
-		total += match.Size
-	}
-	return total
-}
-
 func (h *Handler) applyPostReplication(ctx context.Context, entry replica.ReplicationEntry) (schemas.PostLimitResponse, error) {
 	if entry.Type != replica.ReplicationWritePost {
 		return schemas.PostLimitResponse{}, errors.New("replication entry is not post")
 	}
+	response := schemas.PostLimitResponse{
+		OrderID: entry.OrderID,
+	}
+	seqApplied, err := h.replica.ApplyRemote(entry)
+	if err != nil {
+		return schemas.PostLimitResponse{}, err
+	}
+	if !seqApplied {
+		return response, nil
+	}
+
 	if entry.User == "" {
 		return schemas.PostLimitResponse{}, errors.New("replication entry missing user")
 	}
@@ -181,40 +180,31 @@ func (h *Handler) applyPostReplication(ctx context.Context, entry replica.Replic
 		return schemas.PostLimitResponse{}, errors.New("replication entry missing orderId")
 	}
 
-	seqApplied, err := h.replica.ApplyRemote(entry)
-	if err != nil {
-		return schemas.PostLimitResponse{}, err
-	}
-	if !seqApplied {
-		return schemas.PostLimitResponse{
-			OrderID: entry.OrderID,
-			Fills:   nil,
-		}, nil
-	}
-
 	orderID, err := uuid.Parse(entry.OrderID)
 	if err != nil {
 		return schemas.PostLimitResponse{}, fmt.Errorf("replication entry invalid orderId: %w", err)
 	}
-	return h.orderbook.PostLimit(ctx, entry.User, orderID, entry.PriceLevel, entry.Amount, entry.IsBid), nil
+
+	response = h.orderbook.PostLimit(
+		ctx,
+		entry.User,
+		orderID,
+		entry.PriceLevel,
+		entry.Amount,
+		entry.IsBid,
+	)
+
+	return response, nil
 }
 
 func (h *Handler) applyCancelReplication(ctx context.Context, entry replica.ReplicationEntry) (schemas.CancelLimitResponse, error) {
-	if entry.Type != replica.ReplicationWriteCancel {
-		return schemas.CancelLimitResponse{}, errors.New("replication entry is not cancel")
-	}
-	if entry.OrderID == "" {
-		return schemas.CancelLimitResponse{}, errors.New("replication entry missing orderId")
-	}
-
+	response := schemas.CancelLimitResponse{}
 	seqApplied, err := h.replica.ApplyRemote(entry)
 	if err != nil {
 		return schemas.CancelLimitResponse{}, err
 	}
 	if !seqApplied {
-		return schemas.CancelLimitResponse{
-			SizeCancelled: 0,
-		}, nil
+		return response, nil
 	}
 
 	orderID, err := uuid.Parse(entry.OrderID)

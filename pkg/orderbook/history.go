@@ -8,8 +8,8 @@ import (
 func (ob *OrderBook) OpenOrdersForUser(ctx context.Context, user string) []Order {
 	ob.obs.LogInfo(ctx, "orderbook.open_orders.query user=%s", user)
 
-	ob.mu.Lock()
-	defer ob.mu.Unlock()
+	ob.mu.RLock()
+	defer ob.mu.RUnlock()
 
 	if user == "" {
 		return []Order{}
