@@ -75,7 +75,6 @@ func TestPrepareDuplicateSuppression(t *testing.T) {
 }
 
 func TestPrepareTimeoutThenReplay(t *testing.T) {
-	now := time.Now()
 	coordinator := NewCoordinator(NodeRolePrimary, []string{"peer1", "peer2"}, "test-cluster")
 	coordinator.SetPrepareTimeout(20 * time.Millisecond)
 
@@ -87,7 +86,7 @@ func TestPrepareTimeoutThenReplay(t *testing.T) {
 	}
 
 	// advance time past timeout and ensure commit is rejected because prepare is expired
-	now = now.Add(25 * time.Millisecond)
+	time.Sleep(25 * time.Millisecond)
 	if _, err := coordinator.CommitRemote(entry); err == nil {
 		t.Fatalf("expected commit to fail for expired prepare")
 	}

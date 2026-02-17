@@ -1,0 +1,76 @@
+[NOTICE] replica node startup: role=secondary peers=[http://127.0.0.1:8080 http://127.0.0.1:8081 http://127.0.0.1:8083] required_peer_acks=2 can_accept_write=false primary=http://127.0.0.1:8080
+Server is live as SECONDARY node. Starting to listen.
+
+ ┌───────────────────────────────────────────────────┐ 
+ │                  Fiber v2.52.11                   │ 
+ │               http://127.0.0.1:8082               │ 
+ │       (bound on host 0.0.0.0 and port 8082)       │ 
+ │                                                   │ 
+ │ Handlers ............ 16  Processes ........... 1 │ 
+ │ Prefork ....... Disabled  PID ............. 79552 │ 
+ └───────────────────────────────────────────────────┘ 
+
+[INFO][1f06ec06-03e5-4a33-94e4-da196b37f5ab] replica.prepare: stored seq=1 type=post_limit
+[INFO][1f06ec06-03e5-4a33-94e4-da196b37f5ab] orderbook.post_limit.resting_order_added user=alice order_id=f9a86c91-f2b2-4de9-ab1b-16112587bf48 price=100 amount=5
+[INFO][1f06ec06-03e5-4a33-94e4-da196b37f5ab] replica.commit: applied seq=1 type=post_limit
+[INFO][96ebdd51-3b1b-49b9-8b34-5dd844605b6c] replica.prepare: stored seq=2 type=post_limit
+[INFO][96ebdd51-3b1b-49b9-8b34-5dd844605b6c] orderbook.post_limit.resting_order_added user=bob order_id=05c1587c-1683-4758-ae2a-5ab4e4e5789d price=102 amount=3
+[INFO][96ebdd51-3b1b-49b9-8b34-5dd844605b6c] replica.commit: applied seq=2 type=post_limit
+[INFO][42ea3b3d-6128-45da-b150-e62fb3549bb1] replica.prepare: stored seq=3 type=post_limit
+[INFO][42ea3b3d-6128-45da-b150-e62fb3549bb1] orderbook.post_limit.resting_order_added user=carol order_id=16852682-f259-4b93-87f7-1f08a2e92770 price=210 amount=1
+[INFO][42ea3b3d-6128-45da-b150-e62fb3549bb1] replica.commit: applied seq=3 type=post_limit
+[INFO][86a66871-357b-4bf2-b61d-d875fb583d77] replica.prepare: stored seq=4 type=post_limit
+[INFO][86a66871-357b-4bf2-b61d-d875fb583d77] orderbook.post_limit.resting_order_added user=dave order_id=78c07f9b-6148-43d4-901d-fb2c1e9d7dc9 price=215 amount=1
+[INFO][86a66871-357b-4bf2-b61d-d875fb583d77] replica.commit: applied seq=4 type=post_limit
+[INFO][d12e5f01-156a-423c-a984-f075ca9203e2] replica.prepare: stored seq=5 type=cancel_limit
+[INFO][d12e5f01-156a-423c-a984-f075ca9203e2] orderbook.cancel.start order_id=16852682-f259-4b93-87f7-1f08a2e92770
+[INFO][d12e5f01-156a-423c-a984-f075ca9203e2] orderbook.cancel.done order_id=16852682-f259-4b93-87f7-1f08a2e92770 size_cancelled=1
+[INFO][d12e5f01-156a-423c-a984-f075ca9203e2] replica.commit: applied seq=5 type=cancel_limit
+[INFO][572f1336-a494-4ffb-bc5f-fbc4f1507b82] replica.prepare: stored seq=6 type=post_limit
+[INFO][572f1336-a494-4ffb-bc5f-fbc4f1507b82] orderbook.post_limit.resting_order_added user=erin order_id=baa6e430-bc65-459a-9d72-40412e0d9730 price=130 amount=2
+[INFO][572f1336-a494-4ffb-bc5f-fbc4f1507b82] replica.commit: applied seq=6 type=post_limit
+[INFO][8336050c-85da-418e-9f1b-50e176c8fd7c] replica.prepare: stored seq=7 type=cancel_limit
+[INFO][8336050c-85da-418e-9f1b-50e176c8fd7c] orderbook.cancel.start order_id=baa6e430-bc65-459a-9d72-40412e0d9730
+[INFO][8336050c-85da-418e-9f1b-50e176c8fd7c] orderbook.cancel.done order_id=baa6e430-bc65-459a-9d72-40412e0d9730 size_cancelled=2
+[INFO][8336050c-85da-418e-9f1b-50e176c8fd7c] replica.commit: applied seq=7 type=cancel_limit
+[INFO][8a6b04d6-6fa3-417a-9daf-ae4a81148d7c] replica.prepare: stored seq=8 type=post_limit
+[INFO][8a6b04d6-6fa3-417a-9daf-ae4a81148d7c] orderbook.post_limit.resting_order_added user=faye order_id=454bec51-1a61-45fb-90f8-c55ffad1bf66 price=131 amount=2
+[INFO][8a6b04d6-6fa3-417a-9daf-ae4a81148d7c] replica.commit: applied seq=8 type=post_limit
+[INFO][2aa8c3e3-373b-4ac5-b166-d7b8c2a89760] orders.query: user=alice
+[INFO][2aa8c3e3-373b-4ac5-b166-d7b8c2a89760] replica.read: starting freshness check
+[INFO][2aa8c3e3-373b-4ac5-b166-d7b8c2a89760] replica.read: starting freshness check required=2 peer_count=3
+[INFO][2aa8c3e3-373b-4ac5-b166-d7b8c2a89760] replica.read: peer_state peer=http://127.0.0.1:8080 applied=8
+[INFO][2aa8c3e3-373b-4ac5-b166-d7b8c2a89760] replica.read: peer_state peer=http://127.0.0.1:8081 applied=8
+[INFO][2aa8c3e3-373b-4ac5-b166-d7b8c2a89760] replica.read: peer_state peer=http://127.0.0.1:8083 applied=8
+[INFO][2aa8c3e3-373b-4ac5-b166-d7b8c2a89760] replica.read: local state is fresh enough local_seq=8
+[INFO][2aa8c3e3-373b-4ac5-b166-d7b8c2a89760] orderbook.open_orders.query user=alice
+[INFO][2aa8c3e3-373b-4ac5-b166-d7b8c2a89760] orders.query.done user=alice count=1
+[INFO][d7d4fa3f-70a4-47e1-b5bd-62a287b40716] orders.query: user=bob
+[INFO][d7d4fa3f-70a4-47e1-b5bd-62a287b40716] replica.read: starting freshness check
+[INFO][d7d4fa3f-70a4-47e1-b5bd-62a287b40716] replica.read: starting freshness check required=2 peer_count=3
+[INFO][d7d4fa3f-70a4-47e1-b5bd-62a287b40716] replica.read: peer_state peer=http://127.0.0.1:8080 applied=8
+[INFO][d7d4fa3f-70a4-47e1-b5bd-62a287b40716] replica.read: peer_state peer=http://127.0.0.1:8081 applied=8
+[INFO][d7d4fa3f-70a4-47e1-b5bd-62a287b40716] replica.read: peer_state peer=http://127.0.0.1:8083 applied=8
+[INFO][d7d4fa3f-70a4-47e1-b5bd-62a287b40716] replica.read: local state is fresh enough local_seq=8
+[INFO][d7d4fa3f-70a4-47e1-b5bd-62a287b40716] orderbook.open_orders.query user=bob
+[INFO][d7d4fa3f-70a4-47e1-b5bd-62a287b40716] orders.query.done user=bob count=1
+[INFO][58b20a34-28d0-4b22-a18e-5b026b3615fe] orders.query: user=dave
+[INFO][58b20a34-28d0-4b22-a18e-5b026b3615fe] replica.read: starting freshness check
+[INFO][58b20a34-28d0-4b22-a18e-5b026b3615fe] replica.read: starting freshness check required=2 peer_count=3
+[INFO][58b20a34-28d0-4b22-a18e-5b026b3615fe] replica.read: peer_state peer=http://127.0.0.1:8080 applied=8
+[INFO][58b20a34-28d0-4b22-a18e-5b026b3615fe] replica.read: peer_state peer=http://127.0.0.1:8081 applied=8
+[INFO][58b20a34-28d0-4b22-a18e-5b026b3615fe] replica.read: peer_state peer=http://127.0.0.1:8083 applied=8
+[INFO][58b20a34-28d0-4b22-a18e-5b026b3615fe] replica.read: local state is fresh enough local_seq=8
+[INFO][58b20a34-28d0-4b22-a18e-5b026b3615fe] orderbook.open_orders.query user=dave
+[INFO][58b20a34-28d0-4b22-a18e-5b026b3615fe] orders.query.done user=dave count=1
+[INFO][f63d42db-388a-428c-9840-55099e11fe93] orders.query: user=faye
+[INFO][f63d42db-388a-428c-9840-55099e11fe93] replica.read: starting freshness check
+[INFO][f63d42db-388a-428c-9840-55099e11fe93] replica.read: starting freshness check required=2 peer_count=3
+[INFO][f63d42db-388a-428c-9840-55099e11fe93] replica.read: peer_state peer=http://127.0.0.1:8080 applied=8
+[INFO][f63d42db-388a-428c-9840-55099e11fe93] replica.read: peer_state peer=http://127.0.0.1:8081 applied=8
+[INFO][f63d42db-388a-428c-9840-55099e11fe93] replica.read: peer_state peer=http://127.0.0.1:8083 applied=8
+[INFO][f63d42db-388a-428c-9840-55099e11fe93] replica.read: local state is fresh enough local_seq=8
+[INFO][f63d42db-388a-428c-9840-55099e11fe93] orderbook.open_orders.query user=faye
+[INFO][f63d42db-388a-428c-9840-55099e11fe93] orders.query.done user=faye count=1
+[NOTICE] Received SIGTERM, shutting down gracefully
+[NOTICE] Server shut down

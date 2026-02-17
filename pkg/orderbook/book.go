@@ -37,7 +37,7 @@ func (ob *OrderBook) PostLimit(ctx context.Context, user string, orderID uuid.UU
 
 	var fills []schemas.PostLimitMatch
 	if isBid {
-		fills = ob.matchIncoming(ctx, incoming, &ob.asks, false, func(levelPrice int64) bool {
+		fills = ob.matchIncoming(ctx, incoming, true, func(levelPrice int64) bool {
 			return levelPrice <= incoming.PriceLevel
 		})
 		if incoming.Amount > 0 {
@@ -45,7 +45,7 @@ func (ob *OrderBook) PostLimit(ctx context.Context, user string, orderID uuid.UU
 			ob.obs.LogInfo(ctx, "orderbook.post_limit.resting_order_added user=%s order_id=%s price=%d amount=%d", incoming.User, incoming.ID, incoming.PriceLevel, incoming.Amount)
 		}
 	} else {
-		fills = ob.matchIncoming(ctx, incoming, &ob.bids, true, func(levelPrice int64) bool {
+		fills = ob.matchIncoming(ctx, incoming, false, func(levelPrice int64) bool {
 			return levelPrice >= incoming.PriceLevel
 		})
 		if incoming.Amount > 0 {
@@ -109,8 +109,12 @@ func (ob *OrderBook) HasOrder(orderID uuid.UUID) bool {
 	return exists
 }
 
-func (ob *OrderBook) matchIncoming(ctx context.Context, incoming *Order, opposite *orderLevelHeap, oppositeIsBid bool, canMatch func(price int64) bool) []schemas.PostLimitMatch {
+func (ob *OrderBook) matchIncoming(ctx context.Context, incoming *Order, oppositeIsBid bool, canMatch func(price int64) bool) []schemas.PostLimitMatch {
 	var fills []schemas.PostLimitMatch
+	opposite := &ob.bids
+	if oppositeIsBid {
+		opposite = &ob.asks
+	}
 
 	for opposite.Len() > 0 && incoming.Amount > 0 {
 		level := opposite.Peek()
